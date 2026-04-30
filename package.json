@@ -1,0 +1,24 @@
+{
+  "name": "deep-research",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "author": "Muhammed-Awwal",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@google/genai": "^1.51.0",
+    "@types/node": "^25.6.0",
+    "@types/pdfkit": "^0.17.6",
+    "dotenv": "^17.4.2",
+    "pdfkit": "^0.18.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}
