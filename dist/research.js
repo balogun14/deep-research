@@ -38,28 +38,40 @@ export class DeepResearchAgent {
             });
             console.log(`🆔 Research ID: ${interaction.id}`);
             let result;
+            let lastLoggedIndex = -1;
             while (true) {
                 result = await this.client.interactions.get(interaction.id);
+                const outputs = result.outputs || [];
+                // Log any NEW outputs we haven't seen yet
+                for (let i = lastLoggedIndex + 1; i < outputs.length; i++) {
+                    const output = outputs[i];
+                    if (output.type === 'thought_summary') {
+                        console.log(`🤔 [Thinking]: ${output.text}`);
+                    }
+                    else if (output.type === 'text') {
+                        console.log(`📝 [Progress]: New section received...`);
+                    }
+                    lastLoggedIndex = i;
+                }
                 if (result.status === 'completed') {
                     console.log('✅ Research completed!');
-                    const lastOutput = result.outputs[result.outputs.length - 1].text;
+                    // Concatenate ALL text outputs to form the full report
+                    const fullReport = outputs
+                        .filter((o) => o.type === 'text')
+                        .map((o) => o.text)
+                        .join('\n\n');
                     return {
-                        report: lastOutput,
+                        report: fullReport || "No text report found.",
                         id: interaction.id
                     };
                 }
                 else if (result.status === 'failed') {
                     throw new Error(`Research failed: ${result.error}`);
                 }
-                // Log latest status/thinking
-                const latestOutput = result.outputs[result.outputs.length - 1];
-                if (latestOutput?.type === 'thought_summary') {
-                    console.log(`🤔 Thinking: ${latestOutput.text}`);
+                if (outputs.length === 0) {
+                    console.log(`⏳ Initializing research (Status: ${result.status})...`);
                 }
-                else {
-                    console.log(`⏳ Status: ${result.status}...`);
-                }
-                await new Promise(resolve => setTimeout(resolve, 15000));
+                await new Promise(resolve => setTimeout(resolve, 10000));
             }
         }
         catch (error) {

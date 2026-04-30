@@ -47,41 +47,61 @@ export class DeepResearchAgent {
       console.log(`🆔 Research ID: ${interaction.id}`);
 
       let result: any;
+      let lastLoggedIndex = -1;
+
       while (true) {
         result = await this.client.interactions.get(interaction.id);
         
         const outputs = result.outputs || [];
-        const latestOutput = outputs.length > 0 ? outputs[outputs.length - 1] : null;
+
+        // Log any NEW outputs we haven't seen yet
+        for (let i = lastLoggedIndex + 1; i < outputs.length; i++) {
+          const output = outputs[i];
+          if (output.type === 'thought_summary') {
+            console.log(`🤔 [Thinking]: ${output.text}`);
+          } else if (output.type === 'text') {
+            console.log(`📝 [Progress]: New section received...`);
+          }
+          lastLoggedIndex = i;
+        }
 
         if (result.status === 'completed') {
           console.log('✅ Research completed!');
           
-          // Find the final text report (it might not be the absolute last output if there are images/etc)
-          const textOutput = outputs.reverse().find((o: any) => o.type === 'text')?.text || "No text report found.";
+          // Concatenate ALL text outputs to form the full report
+          const fullReport = outputs
+            .filter((o: any) => o.type === 'text')
+            .map((o: any) => o.text)
+            .join('\n\n');
           
           return {
-            report: textOutput,
+            report: fullReport || "No text report found.",
             id: interaction.id
           };
         } else if (result.status === 'failed') {
           throw new Error(`Research failed: ${result.error}`);
         }
 
-        // Log latest status/thinking
-        if (latestOutput?.type === 'thought_summary') {
-          console.log(`🤔 Thinking: ${latestOutput.text}`);
-        } else if (latestOutput?.type === 'text') {
-          console.log(`📝 Partial report received...`);
-        } else {
-          console.log(`⏳ Status: ${result.status}...`);
+        if (outputs.length === 0) {
+          console.log(`⏳ Initializing research (Status: ${result.status})...`);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 15000));
+        await new Promise(resolve => setTimeout(resolve, 10000));
       }
     } catch (error) {
       console.error('❌ Error during research:', error);
       throw error;
     }
+  }
+
+  /**
+   * Saves the research report as a Markdown file.
+   * @param report The text content of the report.
+   * @param filePath The path where the Markdown should be saved.
+   */
+  async saveAsMarkdown(report: string, filePath: string): Promise<string> {
+    await fs.promises.writeFile(filePath, report, 'utf8');
+    return filePath;
   }
 
   /**
@@ -98,16 +118,15 @@ export class DeepResearchAgent {
         doc.pipe(stream);
 
         // Title
-        doc.fontSize(20).text('Deep Research Report', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(10).text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+        doc.fontSize(24).fillColor('#2c3e50').text('Deep Research Report', { align: 'center' });
+        doc.moveDown(0.5);
+        doc.fontSize(10).fillColor('#7f8c8d').text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
         doc.moveDown(2);
 
         // Content
-        doc.fontSize(12).text(report, {
+        doc.fontSize(11).fillColor('#34495e').text(report, {
           align: 'justify',
-          columns: 1,
-          lineGap: 2
+          lineGap: 4
         });
 
         doc.end();

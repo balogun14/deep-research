@@ -1,13 +1,26 @@
 import { DeepResearchAgent } from './research.js';
+import * as fs from 'fs';
+import * as path from 'path';
 async function main() {
     const agent = new DeepResearchAgent();
     // Example topic
     const topic = process.argv[2] || 'Analyze the current state of the global semiconductor market and key players.';
     try {
         const result = await agent.performResearch(topic);
-        console.log('\n--- RESEARCH REPORT ---');
+        // Ensure output directory exists
+        const outputDir = './output';
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir);
+        }
+        // Create a relevant filename from the topic
+        const slug = topic
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '')
+            .substring(0, 50);
+        const pdfPath = path.join(outputDir, `${slug || 'research'}_${Date.now()}.pdf`);
+        console.log('\n--- RESEARCH REPORT SUMMARY ---');
         console.log(result.report.substring(0, 500) + '...');
-        const pdfPath = `research_${Date.now()}.pdf`;
         await agent.saveAsPDF(result.report, pdfPath);
         console.log(`\n✅ PDF Report saved to: ${pdfPath}`);
         console.log(`Full results interaction ID: ${result.id}`);
